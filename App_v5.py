@@ -2,34 +2,34 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="🛡️ 工業級動態防禦退休精算器 v5", layout="wide")
+st.set_page_config(page_title="🛡️ 工業級動態防禦退休精算器 v6", layout="wide")
 
-st.title("🛡️ 工業級動態防禦退休精算器 v5")
+st.title("🛡️ 工業級動態防禦退休精算器 v6")
 st.write("本計算器將每一年度的現金流拆解至「按月精算」，並根據您輸入的數據進行「智慧型動態方針診斷」，拒絕罐頭訊息。")
 
 st.markdown("---")
 
 st.header("⚙️ 核心評估參數設定")
 
-# 1. 基本資訊 (將 value 預設值全部移除/改為 0 或最小值)
+# 1. 基本資訊 (將 value 設為 None，讓畫面呈現完全空白等待輸入)
 st.subheader("👤 基本資訊")
 col1, col2 = st.columns(2)
 with col1:
-    current_age = st.number_input("目前年齡 (歲)", min_value=1, max_value=100, value=0, step=1)
-    retire_age = st.number_input("預計退休年齡 (歲)", min_value=1, max_value=100, value=0, step=1)
+    current_age = st.number_input("目前年齡 (歲)", min_value=1, max_value=100, value=None, step=1)
+    retire_age = st.number_input("預計退休年齡 (歲)", min_value=1, max_value=100, value=None, step=1)
 with col2:
-    target_age = st.number_input("預計活到幾歲", min_value=2, max_value=110, value=100, step=1)
-    current_assets = st.number_input("目前資產總額 (新台幣/元)", min_value=0, value=0, step=1000000, format="%d")
+    target_age = st.number_input("預計活到幾歲", min_value=2, max_value=110, value=100, step=1) # 預計壽命保留合理上限
+    current_assets = st.number_input("目前資產總額 (新台幣/元)", min_value=0, value=None, step=1000000, format="%d")
 
-# 2. 支出分流設定
+# 2. 支出分流設定 (同樣改為 None 保持空白狀態)
 st.subheader("💰 支出與生活水平")
 col3, col4 = st.columns(2)
 with col3:
-    base_monthly_expense = st.number_input("退休後每月基礎基本支出 (目前幣值/元)", min_value=0, value=0, step=5000, format="%d")
-    medical_monthly_expense_60 = st.number_input("60歲後每月額外醫療/長照預備金 (目前幣值/元)", min_value=0, value=0, step=5000, format="%d")
+    base_monthly_expense = st.number_input("退休後每月基礎基本支出 (目前幣值/元)", min_value=0, value=None, step=5000, format="%d")
+    medical_monthly_expense_60 = st.number_input("60歲後每月額外醫療/長照預備金 (目前幣值/元)", min_value=0, value=None, step=5000, format="%d")
 with col4:
     capital_expense_cycle = st.number_input("非經常性大筆支出週期 (例如：每幾年換車或大修房屋)", min_value=1, max_value=30, value=10, step=1)
-    capital_expense_amount = st.number_input("非經常性大筆支出每次金額 (元)", min_value=0, value=0, step=100000, format="%d")
+    capital_expense_amount = st.number_input("非經常性大筆支出每次金額 (元)", min_value=0, value=None, step=100000, format="%d")
 
 # 3. 市場與風險控制（加入台灣環境備註）
 st.subheader("📈 市場與通膨參數 (附台灣環境標準參考)")
@@ -54,18 +54,26 @@ cash_buffer_years = st.slider(
     min_value=0.0, max_value=5.0, value=3.0, step=0.5
 )
 
-# 4. 台灣社福銜接
+# 4. 台灣社福銜接 (年金金額設為 None 空白)
 st.subheader("🏦 台灣社會福利年金銜接")
 col5, col6 = st.columns(2)
 with col5:
     gov_pension_age = st.number_input("預計請領政府年金（勞保+勞退）年齡", min_value=60, max_value=75, value=65, step=1)
 with col6:
-    gov_pension_amount = st.number_input("預估該年齡可領取之每月年金 (目前幣值/元)", min_value=0, value=0, step=1000, format="%d")
+    gov_pension_amount = st.number_input("預估該年齡可領取之每月年金 (目前幣值/元)", min_value=0, value=None, step=1000, format="%d")
 
 st.markdown("---")
 
-# --- 核心精算邏輯（確認使用者填寫後才驅動引擎） ---
-if current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age and current_age > 0:
+# --- 核心精算邏輯（嚴格防呆：確保所有關鍵欄位都不是 None 且皆有有效數值） ---
+if (current_assets is not None and base_monthly_expense is not None and 
+    current_age is not None and retire_age is not None and 
+    current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age):
+
+    # 確保選填的非經常性與醫療項目非 None，若為 None 則代入 0 進行計算
+    med_exp_val = medical_monthly_expense_60 if medical_monthly_expense_60 is not None else 0
+    cap_exp_amt_val = capital_expense_amount if capital_expense_amount is not None else 0
+    gov_pen_amt_val = gov_pension_amount if gov_pension_amount is not None else 0
+
     years_to_retire = retire_age - current_age
     months_to_retire = years_to_retire * 12
     total_retirement_months = (target_age - retire_age) * 12
@@ -90,8 +98,8 @@ if current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age 
         broken_age = None
         
         c_month_base = base_monthly_expense * ((1 + inflation_general) ** years_to_retire)
-        c_month_med = medical_monthly_expense_60 * ((1 + inflation_medical) ** (60 - current_age)) if retire_age <= 60 else medical_monthly_expense_60 * ((1 + inflation_medical) ** years_to_retire)
-        c_gov_pension = gov_pension_amount * ((1 + inflation_general) ** (gov_pension_age - current_age))
+        c_month_med = med_exp_val * ((1 + inflation_medical) ** (60 - current_age)) if retire_age <= 60 else med_exp_val * ((1 + inflation_medical) ** years_to_retire)
+        c_gov_pension = gov_pen_amt_val * ((1 + inflation_general) ** (gov_pension_age - current_age))
         
         for m in range(total_retirement_months + 1):
             current_retire_year = m // 12
@@ -108,7 +116,7 @@ if current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age 
                 expense += c_month_med
                 
             if m > 0 and (m % (capital_expense_cycle * 12) == 0):
-                expense += capital_expense_amount * ((1 + inflation_general) ** (years_to_retire + current_retire_year))
+                expense += cap_exp_amt_val * ((1 + inflation_general) ** (years_to_retire + current_retire_year))
                 
             income = c_gov_pension if age >= gov_pension_age else 0
             net_drain = expense - income
@@ -129,7 +137,7 @@ if current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age 
                 "期初總資產": total_wealth,
                 "本月基本支出": c_month_base,
                 "本月醫療預備金": c_month_med if age >= 60 else 0,
-                "本月大筆資本支出": capital_expense_amount * ((1 + inflation_general) ** (years_to_retire + current_retire_year)) if (m > 0 and m % (capital_expense_cycle * 12) == 0) else 0,
+                "本月大筆資本支出": cap_exp_amt_val * ((1 + inflation_general) ** (years_to_retire + current_retire_year)) if (m > 0 and m % (capital_expense_cycle * 12) == 0) else 0,
                 "本月政府年金流入": income,
                 "核心投資池月收益": roi_earnings,
                 "期末總資產": core_pool + cash_pool
@@ -154,7 +162,7 @@ if current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age 
     required_save = low if low > 100 else 0
     success_final, final_history, final_assets, broken_age = run_monthly_simulation(required_save)
     
-    # 格式化輸出數據
+    # 格式化輸出數據（移除小數點，加入千分位）
     df_res = pd.DataFrame(final_history)
     df_display = df_res.copy()
     for col in ["期初總資產", "本月基本支出", "本月醫療預備金", "本月大筆資本支出", "本月政府年金流入", "核心投資池月收益", "期末總資產"]:
@@ -185,21 +193,21 @@ if current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age 
     # 動態條件判斷
     has_deficit = required_save > 0
     cash_ratio = total_cash_buffer_needed / final_assets if final_assets > 0 else 0
-    pension_dependency = (gov_pension_amount / base_monthly_expense) * 100 if base_monthly_expense > 0 else 0
+    pension_dependency = (gov_pen_amt_val / base_monthly_expense) * 100 if base_monthly_expense > 0 else 0
     
     # 診斷生成
     if has_deficit:
-        st.error(f"❌ **科學診斷結果【資產赤字風險】**：\\\\n"
-                 f"目前的資產滾存速度無法全面抵禦後續支出。資產預計會在 **{broken_age} 歲** 的某個月份耗盡。\\\\n"
+        st.error(f"❌ **科學診斷結果【資產赤字風險】**：\\n"
+                 f"目前的資產滾存速度無法全面抵禦後續支出。資產預計會在 **{broken_age} 歲** 的某個月份耗盡。\\n"
                  f"**核心地雷分析**：您的基礎提領缺口並非主要原因，而是 60 歲後設定的醫療預備金在經過高達 {inflation_medical*100}% 的醫療獨立通膨非線性放大後，在老齡階段產生了噴湧式開銷；加上每 {capital_expense_cycle} 年一次的複利大筆資本支出，加速了核心投資池的乾涸。")
     else:
-        st.success(f"▲ **科學診斷結果【防禦架構安全】**：\\\\n"
+        st.success(f"▲ **科學診斷結果【防禦架構安全】**：\\n"
                    f"恭喜！經月度級精算，您的既有資產結構極度健全，能安全活過 100 歲。在設定的退休年齡當天，核心池將剩餘高達 **{int(round(final_assets - total_cash_buffer_needed)):,} 元** 的資金在市場持續複利，抗波動能力極強。")
 
     # 智慧方針生成（根據數據動態拼裝）
     st.markdown("### 🎯 專屬您的資產防禦動態方針指引：")
     
-    # 方針一：現金池調配策略 (基於防禦池佔比)
+    # 方針一：現金池調配策略
     st.markdown(f"**1. 雙水庫動態防禦（現金池配置方針）**")
     st.write(f"退休當天，系統指示您必須精確切割出 **{int(round(total_cash_buffer_needed)):,} 元** 的獨立「防禦現金池」（佔總資產的 {cash_ratio*100:.1f}%）。")
     if cash_ratio > 0.25:
@@ -207,10 +215,10 @@ if current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age 
     else:
         st.caption("✅ *動態特注*：您的現金緩衝佔比非常健康。這筆預留的 {cash_buffer_years} 年生活費，能確保您在面臨市場系統性崩跌（如金融海嘯）時，有足夠的底氣凍結任何核心股票變賣，完全靠現金池發薪水给自己，留給核心組合最少 24-36 個月的景氣復甦期。")
 
-    # 方針二：醫療通膨外部化 (基於是否有缺口以及醫療支出比例)
+    # 方針二：醫療通膨外部化
     st.markdown("**2. 醫療通膨的外部對沖方針**")
-    if medical_monthly_expense_60 > 0:
-        st.write(f"您設定了 60 歲後每月 {medical_monthly_expense_60:,} 元的醫療預備金。經精算，在 4.5% 醫療通膨下，這筆開銷到 80 歲時會暴增至每月約 **{int(round(medical_monthly_expense_60 * ((1+inflation_medical)**(80-current_age)))):,} 元**！")
+    if med_exp_val > 0:
+        st.write(f"您設定了 60 歲後每月 {med_exp_val:,} 元的醫療預備金。經精算，在 {inflation_medical*100}% 醫療通膨下，這筆開銷到 80 歲時會暴增至每月約 **{int(round(med_exp_val * ((1+inflation_medical)**(80-current_age)))):,} 元**！")
         if has_deficit:
             st.write("💡 **動態減壓策略**：與其在未來 3 年強行背負每月存入高額儲蓄的壓力，最理性的解法是**「利用保險將醫療通膨外部化」**。建議在退休前，將個人的雙實支實付醫療險、高額重大傷病險與不還本長照險額度拉到最高。一旦將高齡大額自費風險轉嫁給保險公司，本計算器的醫療預備金欄位即可大幅下修，您的每月儲蓄赤字將有望直接歸零。")
         else:
@@ -218,12 +226,11 @@ if current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age 
     else:
         st.write("💡 *動態提示*：您目前未設定 60 歲後的醫療長照預備金。在台灣二代健保自費項目（高階醫材、標靶藥物）大增的環境下，建議未來仍需撥出部分預算配置保險，以防老齡健康波動衝擊核心資產池。")
 
-    # 方針三：政府年金依賴度診斷
+    # 方針三：社會福利與有息興趣銜接
     st.markdown("**3. 社會福利銜接與兼職策略方針**")
     st.write(f"您的退休藍圖中，政府年金（勞保+勞退）在 65 歲注入後，可分擔您目前生活水平約 **{pension_dependency:.1f}%** 的現金流負擔。")
     if has_deficit:
-        shortfall_monthly = required_save
-        st.write(f"💡 **槓桿式退休建議**：面對衝刺儲蓄壓力，另一個最健康的解法是**「40歲轉型、而不是完全不工作」**。如果在 40 歲後進入有息興趣階段（如高山嚮導、攝影接案、技術顧問、講師），**只要每個月能創造約 {int(round(base_monthly_expense*0.3)):,} 元左右的輕量收入**，就能完全破壞 83 歲的破產終局，實現百分之百的安全存活，且不影響生活品質。")
+        st.write(f"💡 **槓桿式退休建議**：面對衝刺儲蓄壓力，另一個最健康的解法是**「改變退休定義，啟動有息興趣」**。如果在預定退休年齡後進入輕量工作階段（如高山嚮導、專業攝影接案、技術顧問、技術講師），**只要每個月能創造約 {int(round(base_monthly_expense*0.3)):,} 元左右的輔助主動收入**，就能完全打破中老年的破產終局，實現百分之百的安全存活，同時完全不影響既有的生活品質。")
 
     # 5. 月度現金流量表
     st.markdown("---")
@@ -231,6 +238,6 @@ if current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age 
     st.dataframe(df_display.set_index("年齡"), use_container_width=True)
 
 else:
-    # 移除預設值後，若未完整填寫，顯示此引導畫面
-    st.info("💡 **歡迎使用！請於上方輸入您自訂的個人資產、年齡、與退休後的各項支出參數。**\\\\n"
-            "系統將會立即啟動「月度級動態防禦引擎」，並根據您的數據結構**動態生成專屬的科學診斷與資產策略方針**。")
+    # 當欄位為 None 時，優雅地顯示使用者導引畫面
+    st.info("💡 **歡迎使用！請於上方逐欄填寫您自訂的年齡、資產、與退休後的各項支出參數。**\\n"
+            "當您填入完整且合理的數據（例如：預計退休年齡大於目前年齡）後，系統將會立即啟動「月度級動態防禦引擎」，並為您動態生成專屬的科學診斷與資產策略方針。")
