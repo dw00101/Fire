@@ -111,3 +111,7 @@ df_display["期末資產"] = df_display["期末資產"].map('{:,.0f} 元'.format
 st.dataframe(df_display.set_index("年齡"), use_container_width=True)
 
 st.caption("註：本計算器之試算結果僅供財務規劃參考，實際資產走勢仍受市場實質波動影響。")
+
+# 在側邊欄或參數區加上：
+cash_buffer = st.number_input("防禦性現金緩衝池 (元)", value=6000000)
+gov_pension_65 = st.number_input("65歲後預估政府年金/月 (目前幣值)", value=25000)
