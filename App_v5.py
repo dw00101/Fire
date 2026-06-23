@@ -2,34 +2,35 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="🛡️ 工業級動態防禦退休精算器 v6", layout="wide")
+st.set_page_config(page_title="🛡️ 工業級動態防禦退休精算器 v7", layout="wide")
 
-st.title("🛡️ 工業級動態防禦退休精算器 v6")
+st.title("🛡️ 工業級動態防禦退休精算器 v7")
 st.write("本計算器將每一年度的現金流拆解至「按月精算」，並根據您輸入的數據進行「智慧型動態方針診斷」，拒絕罐頭訊息。")
 
 st.markdown("---")
 
 st.header("⚙️ 核心評估參數設定")
 
-# 1. 基本資訊 (將 value 設為 None，讓畫面呈現完全空白等待輸入)
+# 1. 基本資訊 (按照要求配置預設值)
 st.subheader("👤 基本資訊")
 col1, col2 = st.columns(2)
 with col1:
-    current_age = st.number_input("目前年齡 (歲)", min_value=1, max_value=100, value=None, step=1)
-    retire_age = st.number_input("預計退休年齡 (歲)", min_value=1, max_value=100, value=None, step=1)
+    current_age = st.number_input("目前年齡 (歲)", min_value=1, max_value=100, value=20, step=1)
+    retire_age = st.number_input("預計退休年齡 (歲)", min_value=current_age, max_value=100, value=40, step=1)
 with col2:
-    target_age = st.number_input("預計活到幾歲", min_value=2, max_value=110, value=100, step=1) # 預計壽命保留合理上限
-    current_assets = st.number_input("目前資產總額 (新台幣/元)", min_value=0, value=None, step=1000000, format="%d")
+    target_age = st.number_input("預計活到幾歲", min_value=retire_age, max_value=110, value=90, step=1)
+    # 使用 value=1000000 且格式化為千分位 %d 顯示
+    current_assets = st.number_input("目前資產總額 (新台幣/元)", min_value=0, value=1000000, step=100000, format="%d")
 
-# 2. 支出分流設定 (同樣改為 None 保持空白狀態)
+# 2. 支出分流設定 (按照要求配置預設值，大額數字皆使用 %d 千分位格式化)
 st.subheader("💰 支出與生活水平")
 col3, col4 = st.columns(2)
 with col3:
-    base_monthly_expense = st.number_input("退休後每月基礎基本支出 (目前幣值/元)", min_value=0, value=None, step=5000, format="%d")
-    medical_monthly_expense_60 = st.number_input("60歲後每月額外醫療/長照預備金 (目前幣值/元)", min_value=0, value=None, step=5000, format="%d")
+    base_monthly_expense = st.number_input("退休後每月基礎基本支出 (目前幣值/元)", min_value=0, value=10000, step=1000, format="%d")
+    medical_monthly_expense_60 = st.number_input("60歲後每月額外醫療/長照預備金 (目前幣值/元)", min_value=0, value=30000, step=1000, format="%d")
 with col4:
     capital_expense_cycle = st.number_input("非經常性大筆支出週期 (例如：每幾年換車或大修房屋)", min_value=1, max_value=30, value=10, step=1)
-    capital_expense_amount = st.number_input("非經常性大筆支出每次金額 (元)", min_value=0, value=None, step=100000, format="%d")
+    capital_expense_amount = st.number_input("非經常性大筆支出每次金額 (元)", min_value=0, value=1000000, step=50000, format="%d")
 
 # 3. 市場與風險控制（加入台灣環境備註）
 st.subheader("📈 市場與通膨參數 (附台灣環境標準參考)")
@@ -54,22 +55,21 @@ cash_buffer_years = st.slider(
     min_value=0.0, max_value=5.0, value=3.0, step=0.5
 )
 
-# 4. 台灣社福銜接 (年金金額設為 None 空白)
+# 4. 台灣社福銜接 (年金金額設為 10000 預設值)
 st.subheader("🏦 台灣社會福利年金銜接")
 col5, col6 = st.columns(2)
 with col5:
     gov_pension_age = st.number_input("預計請領政府年金（勞保+勞退）年齡", min_value=60, max_value=75, value=65, step=1)
 with col6:
-    gov_pension_amount = st.number_input("預估該年齡可領取之每月年金 (目前幣值/元)", min_value=0, value=None, step=1000, format="%d")
+    gov_pension_amount = st.number_input("預估該年齡可領取之每月年金 (目前幣值/元)", min_value=0, value=10000, step=1000, format="%d")
 
 st.markdown("---")
 
-# --- 核心精算邏輯（嚴格防呆：確保所有關鍵欄位都不是 None 且皆有有效數值） ---
+# --- 核心精算邏輯 ---
 if (current_assets is not None and base_monthly_expense is not None and 
     current_age is not None and retire_age is not None and 
     current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age):
 
-    # 確保選填的非經常性與醫療項目非 None，若為 None 則代入 0 進行計算
     med_exp_val = medical_monthly_expense_60 if medical_monthly_expense_60 is not None else 0
     cap_exp_amt_val = capital_expense_amount if capital_expense_amount is not None else 0
     gov_pen_amt_val = gov_pension_amount if gov_pension_amount is not None else 0
@@ -195,16 +195,16 @@ if (current_assets is not None and base_monthly_expense is not None and
     cash_ratio = total_cash_buffer_needed / final_assets if final_assets > 0 else 0
     pension_dependency = (gov_pen_amt_val / base_monthly_expense) * 100 if base_monthly_expense > 0 else 0
     
-    # 診斷生成
+    # 診斷生成 (已徹底移除多餘的轉義 \n 字樣，改採乾淨的原生字串與 Markdown 語法)
     if has_deficit:
-        st.error(f"❌ **科學診斷結果【資產赤字風險】**：\\n"
-                 f"目前的資產滾存速度無法全面抵禦後續支出。資產預計會在 **{broken_age} 歲** 的某個月份耗盡。\\n"
+        st.error(f"❌ **科學診斷結果【資產赤字風險】**：\n\n"
+                 f"目前的資產滾存速度無法全面抵禦後續支出。資產預計會在 **{broken_age} 歲** 的某個月份耗盡。\n\n"
                  f"**核心地雷分析**：您的基礎提領缺口並非主要原因，而是 60 歲後設定的醫療預備金在經過高達 {inflation_medical*100}% 的醫療獨立通膨非線性放大後，在老齡階段產生了噴湧式開銷；加上每 {capital_expense_cycle} 年一次的複利大筆資本支出，加速了核心投資池的乾涸。")
     else:
-        st.success(f"▲ **科學診斷結果【防禦架構安全】**：\\n"
-                   f"恭喜！經月度級精算，您的既有資產結構極度健全，能安全活過 100 歲。在設定的退休年齡當天，核心池將剩餘高達 **{int(round(final_assets - total_cash_buffer_needed)):,} 元** 的資金在市場持續複利，抗波動能力極強。")
+        st.success(f"▲ **科學診斷結果【防禦架構安全】**：\n\n"
+                   f"恭喜！經月度級精算，您的既有資產結構極度健全，能安全活過 {target_age} 歲。在設定的退休年齡當天，核心池將剩餘高達 **{int(round(final_assets - total_cash_buffer_needed)):,} 元** 的資金在市場持續複利，抗波動能力極強。")
 
-    # 智慧方針生成（根據數據動態拼裝）
+    # 智慧方針生成
     st.markdown("### 🎯 專屬您的資產防禦動態方針指引：")
     
     # 方針一：現金池調配策略
@@ -222,7 +222,7 @@ if (current_assets is not None and base_monthly_expense is not None and
         if has_deficit:
             st.write("💡 **動態減壓策略**：與其在未來 3 年強行背負每月存入高額儲蓄的壓力，最理性的解法是**「利用保險將醫療通膨外部化」**。建議在退休前，將個人的雙實支實付醫療險、高額重大傷病險與不還本長照險額度拉到最高。一旦將高齡大額自費風險轉嫁給保險公司，本計算器的醫療預備金欄位即可大幅下修，您的每月儲蓄赤字將有望直接歸零。")
         else:
-            st.write("💡 **動態優化策略**：雖然目前資產安全，但老齡醫療是最大的不確定波動。建議定期檢視自身的健保自費與實支實付險，確保這筆預備金在現實中能被保險有效防禦，讓核心池的資產能保留更多作為家族財富傳承。")
+            st.write("💡 **動態優化策略**：雖然目前資產安全，但老齡醫療是最大的不確定波動。建議定期檢視自身的健保自費與實支實付險，確保這筆預備金在現實中能被保險有效防禦，讓核心池的資產能保留更多作為家族財富傳傳承。")
     else:
         st.write("💡 *動態提示*：您目前未設定 60 歲後的醫療長照預備金。在台灣二代健保自費項目（高階醫材、標靶藥物）大增的環境下，建議未來仍需撥出部分預算配置保險，以防老齡健康波動衝擊核心資產池。")
 
@@ -238,6 +238,4 @@ if (current_assets is not None and base_monthly_expense is not None and
     st.dataframe(df_display.set_index("年齡"), use_container_width=True)
 
 else:
-    # 當欄位為 None 時，優雅地顯示使用者導引畫面
-    st.info("💡 **歡迎使用！請於上方逐欄填寫您自訂的年齡、資產、與退休後的各項支出參數。**\\n"
-            "當您填入完整且合理的數據（例如：預計退休年齡大於目前年齡）後，系統將會立即啟動「月度級動態防禦引擎」，並為您動態生成專屬的科學診斷與資產策略方針。")
+    st.warning("⏳ 請於上方填寫正確的年齡與資產數據（預計退休年齡需大於目前年齡），系統將自動為您生成專屬的科學診斷與資產策略方針。")
