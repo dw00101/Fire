@@ -33,7 +33,7 @@ capital_expense_amount = st.number_input("非經常性大筆支出每次金額 (
 # 3. 投資與市場風險
 st.subheader("📈 市場與通膨參數")
 roi_core = st.slider("核心資產池預期年化報酬率 (%)", min_value=0.0, max_value=15.0, value=6.0, step=0.5) / 100
-inflation_general = st.slider("一般一般物價通膨率 (%)", min_value=0.0, max_value=10.0, value=2.0, step=0.1) / 100
+inflation_general = st.slider("一般物價通膨率 (%)", min_value=0.0, max_value=10.0, value=2.0, step=0.1) / 100
 inflation_medical = st.slider("醫療費用獨立通膨率 (%)", min_value=0.0, max_value=10.0, value=4.5, step=0.1) / 100
 cash_buffer_years = st.slider("防禦性現金緩衝池大小 (預留幾年生活費)", min_value=0, max_value=5, value=3, step=1)
 
