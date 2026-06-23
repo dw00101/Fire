@@ -2,24 +2,14 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="🛡️ 工業級動態防禦退休精算器 v9", layout="wide")
+st.set_page_config(page_title="🛡️ 工業級動態防禦退休精算器 v10", layout="wide")
 
-st.title("🛡️ 工業級動態防禦退休精算器 v9")
+st.title("🛡️ 工業級動態防禦退休精算器 v10")
 st.write("本計算器將每一年度的現金流拆解至「按月精算」，並根據您輸入的數據進行「智慧型動態方針診斷」，拒絕罐頭訊息。")
 
 st.markdown("---")
 
 st.header("⚙️ 核心評估參數設定")
-
-# 協助解析千分位字串為整數的防呆函數
-def parse_comma_int(val_str, default_val):
-    if not val_str:
-        return default_val
-    try:
-        clean_str = str(val_str).replace(",", "").replace(" ", "").replace("$", "")
-        return int(clean_str)
-    except ValueError:
-        return default_val
 
 # 1. 基本資訊
 st.subheader("👤 基本資訊")
@@ -30,23 +20,18 @@ with col1:
 with col2:
     target_age = st.number_input("預計活到幾歲", min_value=retire_age, max_value=110, value=90, step=1)
     
-    current_assets_str = st.text_input("目前資產總額 (新台幣/元)", value="1,000,000")
-    current_assets = parse_comma_int(current_assets_str, 1000000)
+    # 核心亮點：保留 +- 按鈕，利用千分位大級距 step 方便使用者調整大額資產
+    current_assets = st.number_input("目前資產總額 (新台幣/元)", min_value=0, value=1000000, step=100000)
 
 # 2. 支出分流設定
 st.subheader("💰 支出與生活水平")
 col3, col4 = st.columns(2)
 with col3:
-    base_monthly_expense_str = st.text_input("退休後每月基礎基本支出 (目前幣值/元)", value="10,000")
-    base_monthly_expense = parse_comma_int(base_monthly_expense_str, 10000)
-    
-    medical_monthly_expense_60_str = st.text_input("60歲後每月額外醫療/長照預備金 (目前幣值/元)", value="30,000")
-    medical_monthly_expense_60 = parse_comma_int(medical_monthly_expense_60_str, 30000)
+    base_monthly_expense = st.number_input("退休後每月基礎基本支出 (目前幣值/元)", min_value=0, value=10000, step=1000)
+    medical_monthly_expense_60 = st.number_input("60歲後每月額外醫療/長照預備金 (目前幣值/元)", min_value=0, value=30000, step=1000)
 with col4:
     capital_expense_cycle = st.number_input("非經常性大筆支出週期 (例如：每幾年換車或大修房屋)", min_value=1, max_value=30, value=10, step=1)
-    
-    capital_expense_amount_str = st.text_input("非經常性大筆支出每次金額 (元)", value="1,000,000")
-    capital_expense_amount = parse_comma_int(capital_expense_amount_str, 1000000)
+    capital_expense_amount = st.number_input("非經常性大筆支出每次金額 (元)", min_value=0, value=1000000, step=50000)
 
 # 3. 市場與風險控制
 st.subheader("📈 市場與通膨參數 (附台灣環境標準參考)")
@@ -76,8 +61,19 @@ col5, col6 = st.columns(2)
 with col5:
     gov_pension_age = st.number_input("預計請領政府年金（勞保+勞退）年齡", min_value=60, max_value=75, value=65, step=1)
 with col6:
-    gov_pension_amount_str = st.text_input("預估該年齡可領取之每月年金 (目前幣值/元)", value="10,000")
-    gov_pension_amount = parse_comma_int(gov_pension_amount_str, 10000)
+    gov_pension_amount = st.number_input("預估該年齡可領取之每月年金 (目前幣值/元)", min_value=0, value=10000, step=1000)
+
+st.markdown("---")
+
+# 輔助提示區：將使用者輸入的數字即時在下方渲染出完美的財務千分位標籤，兼顧閱讀體驗
+st.info(
+    f"📊 **目前設定數值核對表 (已全面套用財務千分位標記)：**\n\n"
+    f"• 目前資產總額： **{current_assets:,}** 元\n"
+    f"• 退休後每月基礎支出： **{base_monthly_expense:,}** 元\n"
+    f"• 60歲後每月醫療預備金： **{medical_monthly_expense_60:,}** 元\n"
+    f"• 非經常性大筆支出每次金額： **{capital_expense_amount:,}** 元\n"
+    f"• 預估每月政府年金： **{gov_pension_amount:,}** 元"
+)
 
 st.markdown("---")
 
@@ -214,7 +210,7 @@ if (current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age
 
     st.markdown("### 🎯 專屬您的資產防禦動態方針指引：")
     
-    # 方針一：現金池調配策略 (已修正：加上 f 前綴，確保動態渲染數值)
+    # 方針一：現金池調配策略
     st.markdown(f"**1. 雙水庫動態防禦（現金池配置方針）**")
     st.write(f"退休當天，系統指示您必須精確切割出 **{int(round(total_cash_buffer_needed)):,} 元** 的獨立「防禦現金池」（佔總資產的 {cash_ratio*100:.1f}%）。")
     if cash_ratio > 0.25:
