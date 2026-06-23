@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="🛡️ 工業級動態防禦退休精算器 v8", layout="wide")
+st.set_page_config(page_title="🛡️ 工業級動態防禦退休精算器 v9", layout="wide")
 
-st.title("🛡️ 工業級動態防禦退休精算器 v8")
+st.title("🛡️ 工業級動態防禦退休精算器 v9")
 st.write("本計算器將每一年度的現金流拆解至「按月精算」，並根據您輸入的數據進行「智慧型動態方針診斷」，拒絕罐頭訊息。")
 
 st.markdown("---")
@@ -16,7 +16,6 @@ def parse_comma_int(val_str, default_val):
     if not val_str:
         return default_val
     try:
-        # 移除使用者可能輸入的千分位逗號、空白與新台幣符號
         clean_str = str(val_str).replace(",", "").replace(" ", "").replace("$", "")
         return int(clean_str)
     except ValueError:
@@ -31,7 +30,6 @@ with col1:
 with col2:
     target_age = st.number_input("預計活到幾歲", min_value=retire_age, max_value=110, value=90, step=1)
     
-    # 改用 text_input 並預設提供標準千分位字串
     current_assets_str = st.text_input("目前資產總額 (新台幣/元)", value="1,000,000")
     current_assets = parse_comma_int(current_assets_str, 1000000)
 
@@ -174,7 +172,7 @@ if (current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age
     required_save = low if low > 100 else 0
     success_final, final_history, final_assets, broken_age = run_monthly_simulation(required_save)
     
-    # 格式化輸出數據（移除小數點，加入千分位）
+    # 格式化輸出數據
     df_res = pd.DataFrame(final_history)
     df_display = df_res.copy()
     for col in ["期初總資產", "本月基本支出", "本月醫療預備金", "本月大筆資本支出", "本月政府年金流入", "核心投資池月收益", "期末總資產"]:
@@ -202,7 +200,6 @@ if (current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age
     st.markdown("---")
     st.header("🔬 健全性科學診斷與資產策略動態方針")
     
-    # 動態條件判斷
     has_deficit = required_save > 0
     cash_ratio = total_cash_buffer_needed / final_assets if final_assets > 0 else 0
     pension_dependency = (gov_pension_amount / base_monthly_expense) * 100 if base_monthly_expense > 0 else 0
@@ -215,16 +212,15 @@ if (current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age
         st.success(f"▲ **科學診斷結果【防禦架構安全】**：\n\n"
                    f"恭喜！經月度級精算，您的既有資產結構極度健全，能安全活過 {target_age} 歲。在設定的退休年齡當天，核心池將剩餘高達 **{int(round(final_assets - total_cash_buffer_needed)):,} 元** 的資金在市場持續複利，抗波動能力極強。")
 
-    # 智慧方針生成
     st.markdown("### 🎯 專屬您的資產防禦動態方針指引：")
     
-    # 方針一：現金池調配策略
+    # 方針一：現金池調配策略 (已修正：加上 f 前綴，確保動態渲染數值)
     st.markdown(f"**1. 雙水庫動態防禦（現金池配置方針）**")
     st.write(f"退休當天，系統指示您必須精確切割出 **{int(round(total_cash_buffer_needed)):,} 元** 的獨立「防禦現金池」（佔總資產的 {cash_ratio*100:.1f}%）。")
     if cash_ratio > 0.25:
         st.caption("⚠️ *動態特注*：您的現金緩衝池佔比偏高（超過25%），這意味著雖然您徹底免疫了前幾年的市場大跌風險，但有較大比例資金未享受複利。建議這筆現金池可以採用「多期定存拆解法」或台灣高利活存數位帳戶分流，賺取基本利息，不要完全放置在零利率活期。")
     else:
-        st.caption("✅ *動態特注*：您的現金緩衝佔比非常健康。這筆預留的 {cash_buffer_years} 年生活費，能確保您在面臨市場系統性崩跌（如金融海嘯）時，有足夠的底氣凍結任何核心股票變賣，完全靠現金池發薪水给自己，留給核心組合最少 24-36 個月的景氣復甦期。")
+        st.caption(f"✅ *動態特注*：您的現金緩衝佔比非常健康。這筆預留的 {cash_buffer_years} 年生活費，能確保您在面臨市場系統性崩跌（如金融海嘯）時，有足夠的底氣凍結任何核心股票變賣，完全靠現金池發薪水给自己，留給核心組合最少 24-36 個月的景氣復甦期。")
 
     # 方針二：醫療通膨外部化
     st.markdown("**2. 醫療通膨的外部對沖方針**")
@@ -233,7 +229,9 @@ if (current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age
         if has_deficit:
             st.write("💡 **動態減壓策略**：與其在未來 3 年強行背負每月存入高額儲蓄的壓力，最理性的解法是**「利用保險將醫療通膨外部化」**。建議在退休前，將個人的雙實支實付醫療險、高額重大傷病險與不還本長照險額度拉到最高。一旦將高齡大額自費風險轉嫁給保險公司，本計算器的醫療預備金欄位即可大幅下修，您的每月儲蓄赤字將有望直接歸零。")
         else:
-            st.write("💡 **動態優化策略**：雖然目前資產安全，但老齡醫療是最大的不確定波動。建議定期檢視自身的健保自費與實支實付險，確保這筆預備金在現實中能被保險有效防禦，讓核心池的資產能保留更多作為家族財富傳承。")
+            st.write("💡 **動態優化策略**：雖然目前資產安全，但老齡醫療是最大的不確定波動。建議定期檢視自身的健保自費與實支實付險，確保這筆預備金在現實中能被保險有效防禦，讓核心池的資產能保留更多作為家族財富傳傳承。")
+    else:
+        st.write("💡 *動態提示*：您目前未設定 60 歲後的醫療長照預備金。在台灣二代健保自費項目（高階醫材、標靶藥物）大增的環境下，建議未來仍需撥出部分預算配置保險，以防老齡健康波動衝擊核心資產池。")
 
     # 方針三：社會福利與有息興趣銜接
     st.markdown("**3. 社會福利銜接與兼職策略方針**")
