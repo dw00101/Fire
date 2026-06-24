@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="🛡️ 工業級動態防禦退休精算器 v10", layout="wide")
+st.set_page_config(page_title="🛡️ 退休精算器 v10", layout="wide")
 
-st.title("🛡️ 工業級動態防禦退休精算器 v10")
+st.title("🛡️ 退休精算器 v10")
 st.write("本計算器將每一年度的現金流拆解至「按月精算」，並根據您輸入的數據進行「智慧型動態方針診斷」，拒絕罐頭訊息。")
 
 st.markdown("---")
@@ -237,7 +237,7 @@ if (current_assets > 0 and base_monthly_expense > 0 and retire_age > current_age
 
     # 5. 月度現金流量表
     st.markdown("---")
-    st.subheader("📋 工程級每月動態現金流量明細表")
+    st.subheader("📋 每月動態現金流量明細表")
     st.dataframe(df_display.set_index("年齡"), use_container_width=True)
 
 else:
